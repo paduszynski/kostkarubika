@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kostka – ułóż kostkę Rubika</title>
-<meta name="version" content="1.7">
+<meta name="version" content="1.8">
 <meta name="description" content="Kostka – zeskanuj kostkę Rubika aparatem telefonu albo wpisz kolory, a aplikacja pokaże ruch po ruchu, jak ją ułożyć.">
 <meta name="theme-color" content="#171a26">
 <link rel="manifest" href="manifest.webmanifest">
@@ -238,7 +238,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
     <button class="back hidden" id="back" aria-label="Wróć">←</button>
     <a class="brand" href="#" aria-label="Kostka – strona główna">
       <span class="logo" aria-hidden="true"><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i><i style="background:var(--cF)"></i><i style="background:var(--cD)"></i><i style="background:var(--cB)"></i><i style="background:var(--cL)"></i><i style="background:var(--cF)"></i><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i></span>
-      Kostka <span class="ver">1.7</span>
+      Kostka <span class="ver">1.8</span>
     </a>
     <span class="htitle" id="htitle"></span>
   </div>
@@ -288,7 +288,9 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
               <div class="muted" id="scanText"></div>
             </div>
           </div>
-          <div class="warn" id="scanWarn"></div>
+          <div class="warn hidden" id="scanWarn"><span id="scanWarnText"></span>
+            <button class="btn" id="scanWarnFix" style="width:100%;margin-top:8px;min-height:46px;font-size:.98rem">📷 Ustaw kolor ze środka jako kolor tej ściany</button>
+          </div>
           <button class="linkbtn" id="scanColorBtn" style="margin:4px 0 0">🎨 Inny kolor środka?</button>
           <div class="hidden" id="scanColors">
             <div class="muted small" id="scanColorsText" style="margin:6px 0 8px"></div>
@@ -401,7 +403,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
 </main>
 
 <footer>
-  Kostka 1.7 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
+  Kostka 1.8 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
   <a href="https://github.com/paduszynski/kostkarubika">kod na GitHubie</a>
 </footer>
 
@@ -729,6 +731,7 @@ function renderEdges(face) {
 }
 function renderScanStep() {
   const s = SCAN[Math.min(scanStep, 5)];
+  $('scanWarn').classList.add('hidden'); mismatch = 0;
   [...$('dots').children].forEach((b, i) => { b.className = (scans[SCAN[i].face] ? 'done ' : '') + (i === scanStep ? 'cur' : ''); });
   [...$('thumbs').children].forEach((t, i) => t.classList.toggle('cur', i === scanStep));
   $('scanShot').lastChild.textContent = scans[s.face] ? 'Zeskanuj ponownie' : 'Zapisz ścianę';
@@ -753,7 +756,7 @@ async function enterScan() {
   scanStep = 0; scans = {};
   $('scanColors').classList.add('hidden');
   renderScanStep();
-  $('scanWarn').textContent = '';
+  $('scanWarn').classList.add('hidden'); mismatch = 0;
   const msg = $('camMsg');
   msg.classList.add('hidden');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -834,18 +837,30 @@ function guess(rgb) {
     else { const dh = Math.abs(h - ph); d = Math.min(dh, 360 - dh) + Math.abs(v - pv) * 30; }
     if (d < bd) { bd = d; best = f; }
   }
+  guess.dist = bd;
   return best;
 }
 function live() {
   const s = sample();
   if (!s) return;
   lastSample = s;
-  $('camGrid').querySelectorAll(':scope > div').forEach((cell, k) => cell.firstChild.style.setProperty('--c', CVAR(guess(s[k]))));
   const st = SCAN[scanStep];
   if (!st) return;
-  const g = guess(s[4]);
-  $('scanWarn').textContent = g !== st.face ? `Środek wygląda na ${NAME[g]}, a powinien być ${NAME[st.face]}. Sprawdź, czy to dobra ściana, albo zmień kolor środka poniżej.` : '';
+  // the centre always shows the colour this face should have; a different colour only leads to a suggestion
+  $('camGrid').querySelectorAll(':scope > div').forEach((cell, k) => cell.firstChild.style.setProperty('--c', CVAR(k === 4 ? st.face : guess(s[k]))));
+  const g = guess(s[4]), far = guess.dist > 55;   // far: it isn't really like any colour of this cube
+  const off = g !== st.face || far;
+  // count a few frames before showing or hiding, so the warning doesn't flicker while the cube moves
+  mismatch = off ? Math.min(mismatch + 1, 6) : Math.max(mismatch - 1, 0);
+  const box = $('scanWarn');
+  if (mismatch >= 4 && box.classList.contains('hidden')) box.classList.remove('hidden');
+  if (mismatch === 0) box.classList.add('hidden');
+  if (!box.classList.contains('hidden') && off)
+    $('scanWarnText').textContent = (g !== st.face && !far ? `Środek wygląda na ${NAME[g]}, a ta ściana powinna być ${NAME_F[st.face]}.` : `Środek nie wygląda na ${NAME[st.face]}.`) +
+      ` Sprawdź, czy kostka jest dobrze obrócona. Jeśli tak, a Twoja kostka ma tu inny kolor, ustaw go jako kolor tej ściany:`;
 }
+let mismatch = 0;
+$('scanWarnFix').onclick = () => { $('scanPick').click(); mismatch = 0; $('scanWarn').classList.add('hidden'); };
 $('scanShot').onclick = () => {
   const s = sample() || lastSample;
   if (!s) { toast('Aparat jeszcze się nie włączył'); return; }
