@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kostka – ułóż kostkę Rubika</title>
-<meta name="version" content="1.2">
+<meta name="version" content="1.3">
 <meta name="description" content="Kostka – zeskanuj kostkę Rubika aparatem telefonu albo wpisz kolory, a aplikacja pokaże ruch po ruchu, jak ją ułożyć.">
 <meta name="theme-color" content="#171a26">
 <link rel="manifest" href="manifest.webmanifest">
@@ -203,6 +203,7 @@ details summary{cursor:pointer;font-weight:800}
 .sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:8px}
 .sw button{aspect-ratio:1;border-radius:10px;background:var(--c);border:3px solid transparent;box-shadow:0 2px 0 rgba(0,0,0,.4);position:relative}
 .sw button.sel{border-color:#fff;box-shadow:0 0 0 3px var(--accent)}
+.sw button.cam::after{content:"📷";position:absolute;inset:auto 0 2px 0;font-size:.8rem}
 .sw button.used:not(.sel)::after{content:attr(data-who);position:absolute;inset:auto 0 2px 0;font-size:.62rem;font-weight:900;color:rgba(0,0,0,.6)}
 .busy{position:fixed;inset:0;z-index:50;background:rgba(10,11,18,.7);display:grid;place-items:center;text-align:center;padding:20px}
 .busy .sp{width:56px;height:56px;margin:0 auto 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;animation:rot 1.2s ease-in-out infinite}
@@ -219,7 +220,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
     <button class="back hidden" id="back" aria-label="Wróć">←</button>
     <a class="brand" href="#" aria-label="Kostka – strona główna">
       <span class="logo" aria-hidden="true"><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i><i style="background:var(--cF)"></i><i style="background:var(--cD)"></i><i style="background:var(--cB)"></i><i style="background:var(--cL)"></i><i style="background:var(--cF)"></i><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i></span>
-      Kostka <span class="ver">1.2</span>
+      Kostka <span class="ver">1.3</span>
     </a>
     <span class="htitle" id="htitle"></span>
   </div>
@@ -273,6 +274,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
           <button class="linkbtn" id="scanColorBtn" style="margin:4px 0 0">🎨 Inny kolor środka?</button>
           <div class="hidden" id="scanColors">
             <div class="muted small" id="scanColorsText" style="margin:6px 0 8px"></div>
+            <button class="btn" id="scanPick" style="width:100%;margin-bottom:10px">📷 Weź kolor ze środka kamery</button>
             <div class="sw" id="scanSwatches"></div>
           </div>
         </div>
@@ -381,7 +383,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
 </main>
 
 <footer>
-  Kostka 1.2 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
+  Kostka 1.3 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
   <a href="https://github.com/paduszynski/kostkarubika">kod na GitHubie</a>
 </footer>
 
@@ -407,19 +409,34 @@ const SCHEME_KEY = 'kostka-colors';
 let scheme = Object.assign({}, STD_SCHEME);
 try {
   const sv = JSON.parse(localStorage.getItem(SCHEME_KEY));
-  if (sv && 'URFDLB'.split('').every(f => PRESETS[sv[f]]) && new Set(Object.values(sv)).size === 6) scheme = sv;
+  if (sv && 'URFDLB'.split('').every(f => PRESETS[sv[f]] || isCustom(sv[f])) && new Set(Object.values(sv)).size === 6) scheme = sv;
 } catch (e) {}
+// a colour taken from the camera is stored as "custom:#rrggbb"; it borrows the name of the closest free preset
+function isCustom(v) { return typeof v === 'string' && /^custom:#[0-9a-f]{6}$/.test(v); }
+function hexRgb(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
+const HEX = {};
 const NAME = {}, NAME_F = {}, NAME_Q = {};
 const cap = t => t[0].toUpperCase() + t.slice(1);
 function applyScheme() {
+  const taken = new Set();
+  for (const f of 'URFDLB') if (!isCustom(scheme[f])) taken.add(scheme[f]);
   for (const f of 'URFDLB') {
-    const p = PRESETS[scheme[f]];
+    let key = scheme[f];
+    HEX[f] = isCustom(key) ? key.slice(7) : PRESETS[key][3];
+    if (isCustom(key)) {
+      const lab = rgb2lab(hexRgb(HEX[f]));
+      key = Object.keys(PRESETS).filter(k => !taken.has(k))
+        .sort((a, b) => labDist(lab, rgb2lab(hexRgb(PRESETS[a][3]))) - labDist(lab, rgb2lab(hexRgb(PRESETS[b][3]))))[0];
+      taken.add(key);
+    }
+    const p = PRESETS[key];
     NAME[f] = p[0]; NAME_F[f] = p[1]; NAME_Q[f] = p[2];
-    document.documentElement.style.setProperty('--c' + f, p[3]);
+    document.documentElement.style.setProperty('--c' + f, HEX[f]);
   }
   document.querySelectorAll('[data-c]').forEach(el => { const n = NAME[el.dataset.c]; el.textContent = el.hasAttribute('data-cap') ? cap(n) : n; });
   document.querySelectorAll('[data-q]').forEach(el => { el.textContent = NAME_Q[el.dataset.q]; });
 }
+function labDist(a, b) { return (a[0] - b[0]) ** 2 * 0.25 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2; }
 applyScheme();
 const FACE_WORD = { U: 'Górną', R: 'Prawą', F: 'Przednią', D: 'Dolną', L: 'Lewą', B: 'Tylną' };
 const CVAR = f => `var(--c${f})`;
@@ -673,7 +690,7 @@ function renderScanStep() {
     `<small>${s.barPos === 'top' ? 'na górze' : 'na dole'}: ${NAME[s.bar]}</small>`;
   $('scanUndo').disabled = scanStep === 0;
   $('scanSwatches').innerHTML = swatchesHTML(s.face);
-  $('scanColorsText').textContent = `Jaki kolor ma środek tej ściany (${SLOT[s.face].toLowerCase()})? Wybierz go, a reszta kolorów się dopasuje.`;
+  $('scanColorsText').textContent = `Jaki kolor ma środek tej ściany (${SLOT[s.face].toLowerCase()})? Pokaż ją kamerze i weź kolor ze środka albo wybierz go z listy.`;
   [...$('thumbs').children].forEach((th, i) => {
     const data = scans[SCAN[i].face];
     [...th.children].forEach((c, k) => { c.style.background = data ? `rgb(${data[k].join(',')})` : ''; });
@@ -752,12 +769,11 @@ function rgb2hsv([r, g, b]) {
   return [(h * 60 + 360) % 360, max ? d / max : 0, max];
 }
 // quick guess for the live preview only; the final colours are clustered over all 54 stickers
-const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 function guess(rgb) {
   const [h, s, v] = rgb2hsv(rgb);
   let best = null, bd = 1e9;
   for (const f of FACES) {
-    const [ph, ps, pv] = rgb2hsv(hex2rgb(PRESETS[scheme[f]][3]));
+    const [ph, ps, pv] = rgb2hsv(hexRgb(HEX[f]));
     let d;
     if (ps < 0.3) d = s < 0.28 ? Math.abs(v - pv) * 100 : 400;     // white / grey stickers
     else if (s < 0.28 && v > 0.35) d = 400;
@@ -956,7 +972,8 @@ const SLOT = { U: 'Góra', F: 'Przód', R: 'Prawa', L: 'Lewa', B: 'Tył', D: 'D�
 function schemeOwner() { const o = {}; for (const f of FACES) o[scheme[f]] = f; return o; }
 function swatchesHTML(f) {
   const owner = schemeOwner();
-  return Object.keys(PRESETS).map(k => `<button data-f="${f}" data-k="${k}" style="--c:${PRESETS[k][3]}" aria-label="${PRESETS[k][0]}"
+  const own = isCustom(scheme[f]) ? `<button data-f="${f}" data-k="${scheme[f]}" style="--c:${HEX[f]}" aria-label="kolor ze skanu" class="sel cam"></button>` : '';
+  return own + Object.keys(PRESETS).map(k => `<button data-f="${f}" data-k="${k}" style="--c:${PRESETS[k][3]}" aria-label="${PRESETS[k][0]}"
         class="${scheme[f] === k ? 'sel' : ''} ${owner[k] ? 'used' : ''}" data-who="${owner[k] ? SLOT[owner[k]] : ''}"></button>`).join('');
 }
 function setFaceColor(f, k) {
@@ -975,6 +992,23 @@ function renderScheme() {
 }
 $('schemeRows').onclick = onSwatch;
 $('scanSwatches').onclick = onSwatch;
+$('scanPick').onclick = () => {
+  const smp = sample() || lastSample;
+  if (!smp) { toast('Aparat jeszcze się nie włączył'); return; }
+  // camera colours come out dark, so brighten them a bit for display
+  const [h, sat, v] = rgb2hsv(smp[4]);
+  const rgb = hsv2rgb(h, sat, Math.max(v, 0.82));
+  const f = SCAN[Math.min(scanStep, 5)].face;
+  const val = 'custom:#' + rgb.map(x => x.toString(16).padStart(2, '0')).join('');
+  if (FACES.split('').some(g => g !== f && scheme[g] === val)) { toast('Ten kolor ma już inna ściana'); return; }
+  scheme[f] = val;
+  saveScheme();
+  toast(`Zapisano kolor z kamery: ${NAME[f]} środek`);
+};
+function hsv2rgb(h, s, v) {
+  const f = n => { const k = (n + h / 60) % 6; return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1)))); };
+  return [f(5), f(3), f(1)];
+}
 $('scanColorBtn').onclick = () => { $('scanColors').classList.toggle('hidden'); renderScanStep(); };
 function saveScheme() {
   try { localStorage.setItem(SCHEME_KEY, JSON.stringify(scheme)); } catch (e) {}
