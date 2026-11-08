@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kostka – ułóż kostkę Rubika</title>
-<meta name="version" content="1.5">
+<meta name="version" content="1.7">
 <meta name="description" content="Kostka – zeskanuj kostkę Rubika aparatem telefonu albo wpisz kolory, a aplikacja pokaże ruch po ruchu, jak ją ułożyć.">
 <meta name="theme-color" content="#171a26">
 <link rel="manifest" href="manifest.webmanifest">
@@ -132,6 +132,9 @@ main{padding-block:18px 28px}
 .scan-actions{position:fixed;left:0;right:0;bottom:0;z-index:15;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px));background:rgba(23,26,38,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid var(--line)}
 .scan-actions .row{max-width:640px;margin:0 auto}
 .dots b{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;font-size:.8rem;color:#000;opacity:.45}
+.dots b{cursor:pointer}
+.thumb{cursor:pointer;border:2px solid transparent}
+.thumb.cur{border-color:#fff}
 .dots b.cur{opacity:1;border-color:#fff;transform:scale(1.12)}
 .dots b.done{opacity:1}
 .dots b.done::after{content:"✓";font-weight:900}
@@ -235,7 +238,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
     <button class="back hidden" id="back" aria-label="Wróć">←</button>
     <a class="brand" href="#" aria-label="Kostka – strona główna">
       <span class="logo" aria-hidden="true"><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i><i style="background:var(--cF)"></i><i style="background:var(--cD)"></i><i style="background:var(--cB)"></i><i style="background:var(--cL)"></i><i style="background:var(--cF)"></i><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i></span>
-      Kostka <span class="ver">1.5</span>
+      Kostka <span class="ver">1.7</span>
     </a>
     <span class="htitle" id="htitle"></span>
   </div>
@@ -294,11 +297,11 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
           </div>
         </div>
         <div class="scan-actions"><div class="row">
-          <button class="btn" id="scanUndo" style="flex:0 0 auto"><span class="ico">↶</span>Cofnij</button>
+          <button class="btn" id="scanUndo" style="flex:0 0 auto"><span class="ico">◀</span>Poprzednia</button>
           <button class="btn primary" id="scanShot"><span class="ico">📸</span>Zapisz ścianę</button>
         </div></div>
         <div class="thumbs" id="thumbs"></div>
-        <p class="muted small">Ustaw kostkę tak, żeby wypełniła kratkę. Najlepiej przy dziennym świetle, bez odblasków i cieni. Kropki w kratkach pokazują, jaki kolor widzi aparat. Paski wokół kratki to sąsiednie ściany rozłożone jak siatka kostki (rząd przy kratce dotyka skanowanej ściany). Po zeskanowaniu mają prawdziwe kolory, więc powinny się zgadzać z tym, co widzisz na kostce. Po zeskanowaniu wszystkich ścian będzie można poprawić pomyłki.</p>
+        <p class="muted small">Ustaw kostkę tak, żeby wypełniła kratkę. Najlepiej przy dziennym świetle, bez odblasków i cieni. Kropki w kratkach pokazują, jaki kolor widzi aparat. Paski wokół kratki to sąsiednie ściany rozłożone jak siatka kostki (rząd przy kratce dotyka skanowanej ściany). Po zeskanowaniu pokazują kolory rozpoznane na zdjęciu, więc powinny się zgadzać z tym, co widzisz na kostce. Stuknij kwadracik u góry albo miniaturkę, żeby wrócić do dowolnej ściany i zeskanować ją jeszcze raz. Po zeskanowaniu wszystkich ścian będzie można poprawić pomyłki.</p>
         <button class="btn" id="scanToEdit" style="width:100%">✏️ Wolę wpisać kolory ręcznie</button>
         <button class="linkbtn" data-go="#kolory">🎨 Moja kostka ma inne kolory</button>
       </div>
@@ -398,7 +401,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
 </main>
 
 <footer>
-  Kostka 1.5 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
+  Kostka 1.7 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
   <a href="https://github.com/paduszynski/kostkarubika">kod na GitHubie</a>
 </footer>
 
@@ -690,8 +693,8 @@ const sctx = sampler.getContext('2d', { willReadFrequently: true });
 function buildScanUI() {
   $('camGrid').innerHTML = '<div><span></span></div>'.repeat(9) +
     ['t', 'r', 'b', 'l'].map(side => `<b class="edge ${side}">${'<i></i>'.repeat(9)}</b>`).join('');
-  $('dots').innerHTML = SCAN.map(s => `<b style="background:${CVAR(s.face)}"></b>`).join('');
-  $('thumbs').innerHTML = SCAN.map(() => '<div class="thumb">' + '<i></i>'.repeat(9) + '</div>').join('');
+  $('dots').innerHTML = SCAN.map((s, i) => `<b role="button" tabindex="0" aria-label="Ściana ${i + 1}" style="background:${CVAR(s.face)}"></b>`).join('');
+  $('thumbs').innerHTML = SCAN.map((s, i) => `<button class="thumb" aria-label="Ściana ${i + 1}">` + '<i></i>'.repeat(9) + '</button>').join('');
 }
 buildScanUI();
 
@@ -720,13 +723,15 @@ function renderEdges(face) {
       const st = K.STICKERS[touch[e]], p = st.pos.map((v, a) => v - j * n[a]);
       const idx = K.STICKER_AT[p.concat(st.n).join(',')];
       t.className = idx % 9 === 4 ? 'mid' : '';
-      t.style.background = data ? `rgb(${data[idx % 9].join(',')})` : CVAR(g);
+      t.style.background = CVAR(!data || idx % 9 === 4 ? g : guess(data[idx % 9]));
     });
   }
 }
 function renderScanStep() {
   const s = SCAN[Math.min(scanStep, 5)];
-  [...$('dots').children].forEach((b, i) => { b.className = i < scanStep ? 'done' : i === scanStep ? 'cur' : ''; });
+  [...$('dots').children].forEach((b, i) => { b.className = (scans[SCAN[i].face] ? 'done ' : '') + (i === scanStep ? 'cur' : ''); });
+  [...$('thumbs').children].forEach((t, i) => t.classList.toggle('cur', i === scanStep));
+  $('scanShot').lastChild.textContent = scans[s.face] ? 'Zeskanuj ponownie' : 'Zapisz ścianę';
   $('scanTitle').textContent = `Ściana ${Math.min(scanStep, 5) + 1}: ${NAME_F[s.face]}`;
   $('scanText').textContent = s.text();
   const bar = `<div class="bar" style="background:${CVAR(s.bar)}"></div>`;
@@ -739,7 +744,8 @@ function renderScanStep() {
   $('scanColorsText').textContent = `Jaki kolor ma środek tej ściany (${SLOT[s.face].toLowerCase()})? Pokaż ją kamerze i weź kolor ze środka albo wybierz go z listy.`;
   [...$('thumbs').children].forEach((th, i) => {
     const data = scans[SCAN[i].face];
-    [...th.children].forEach((c, k) => { c.style.background = data ? `rgb(${data[k].join(',')})` : ''; });
+    const f = SCAN[i].face;
+    [...th.children].forEach((c, k) => { c.style.background = data ? CVAR(k === 4 ? f : guess(data[k])) : ''; });
   });
 }
 
@@ -815,11 +821,13 @@ function rgb2hsv([r, g, b]) {
   return [(h * 60 + 360) % 360, max ? d / max : 0, max];
 }
 // quick guess for the live preview only; the final colours are clustered over all 54 stickers
+// Nearest colour of this cube. A face that is already scanned is compared with how its centre came out
+// on camera (same light, same camera), the others with their palette colour.
 function guess(rgb) {
   const [h, s, v] = rgb2hsv(rgb);
   let best = null, bd = 1e9;
   for (const f of FACES) {
-    const [ph, ps, pv] = rgb2hsv(hexRgb(HEX[f]));
+    const [ph, ps, pv] = rgb2hsv(scans[f] ? scans[f][4] : hexRgb(HEX[f]));
     let d;
     if (ps < 0.3) d = s < 0.28 ? Math.abs(v - pv) * 100 : 400;     // white / grey stickers
     else if (s < 0.28 && v > 0.35) d = 400;
@@ -844,8 +852,9 @@ $('scanShot').onclick = () => {
   const f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
   if (navigator.vibrate) navigator.vibrate(30);
   scans[SCAN[scanStep].face] = s;
-  scanStep++;
-  if (scanStep >= 6) {
+  // go on to the next face that has no photo yet (a face scanned again keeps the others)
+  const nextFree = [1, 2, 3, 4, 5].map(d => (scanStep + d) % 6).find(i => !scans[SCAN[i].face]);
+  if (nextFree === undefined) {
     renderScanStep();
     facelets = classify(scans);
     persist();
@@ -853,9 +862,13 @@ $('scanShot').onclick = () => {
     go('#edycja');
     return;
   }
+  scanStep = nextFree;
   renderScanStep();
 };
-$('scanUndo').onclick = () => { if (scanStep > 0) { scanStep--; delete scans[SCAN[scanStep].face]; renderScanStep(); } };
+function goScanStep(i) { if (i >= 0 && i < 6) { scanStep = i; renderScanStep(); } }
+$('dots').onclick = e => { const b = e.target.closest('b'); if (b) goScanStep([...$('dots').children].indexOf(b)); };
+$('thumbs').onclick = e => { const t = e.target.closest('.thumb'); if (t) goScanStep([...$('thumbs').children].indexOf(t)); };
+$('scanUndo').onclick = () => goScanStep(scanStep - 1);
 $('scanToEdit').onclick = () => go('#edycja');
 
 function rgb2lab([r, g, b]) {
