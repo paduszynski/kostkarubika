@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kostka – ułóż kostkę Rubika</title>
-<meta name="version" content="1.8">
+<meta name="version" content="1.9">
 <meta name="description" content="Kostka – zeskanuj kostkę Rubika aparatem telefonu albo wpisz kolory, a aplikacja pokaże ruch po ruchu, jak ją ułożyć.">
 <meta name="theme-color" content="#171a26">
 <link rel="manifest" href="manifest.webmanifest">
@@ -130,7 +130,13 @@ main{padding-block:18px 28px}
 .dots{display:flex;gap:8px;justify-content:center;margin-bottom:8px}
 #v-scan{padding-bottom:92px}
 .scan-actions{position:fixed;left:0;right:0;bottom:0;z-index:15;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px));background:rgba(23,26,38,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid var(--line)}
-.scan-actions .row{max-width:640px;margin:0 auto}
+.scan-actions .row{max-width:640px;margin:0 auto;flex-wrap:nowrap}
+.scan-actions .btn{padding:10px 14px}
+#scanShot{flex:1 1 auto;min-width:0;white-space:nowrap}
+#scanUndo{white-space:nowrap}
+.minicam{display:flex;gap:14px;align-items:center;margin-bottom:10px}
+.minicam canvas{width:132px;height:132px;flex:none;border-radius:12px;background:#000}
+#miniSwatch{display:block;width:60px;height:60px;border-radius:14px;border:3px solid #fff;margin:6px 0;background:var(--cX)}
 .dots b{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;font-size:.8rem;color:#000;opacity:.45}
 .dots b{cursor:pointer}
 .thumb{cursor:pointer;border:2px solid transparent}
@@ -238,7 +244,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
     <button class="back hidden" id="back" aria-label="Wróć">←</button>
     <a class="brand" href="#" aria-label="Kostka – strona główna">
       <span class="logo" aria-hidden="true"><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i><i style="background:var(--cF)"></i><i style="background:var(--cD)"></i><i style="background:var(--cB)"></i><i style="background:var(--cL)"></i><i style="background:var(--cF)"></i><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i></span>
-      Kostka <span class="ver">1.8</span>
+      Kostka <span class="ver">1.9</span>
     </a>
     <span class="htitle" id="htitle"></span>
   </div>
@@ -289,11 +295,15 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
             </div>
           </div>
           <div class="warn hidden" id="scanWarn"><span id="scanWarnText"></span>
-            <button class="btn" id="scanWarnFix" style="width:100%;margin-top:8px;min-height:46px;font-size:.98rem">📷 Ustaw kolor ze środka jako kolor tej ściany</button>
+            <button class="btn" id="scanWarnFix" style="color:var(--ink);width:100%;margin-top:8px;min-height:46px;font-size:.98rem">📷 Ustaw kolor ze środka jako kolor tej ściany</button>
           </div>
           <button class="linkbtn" id="scanColorBtn" style="margin:4px 0 0">🎨 Inny kolor środka?</button>
           <div class="hidden" id="scanColors">
             <div class="muted small" id="scanColorsText" style="margin:6px 0 8px"></div>
+            <div class="minicam">
+              <canvas id="miniCam" width="240" height="240" aria-label="podgląd kamery"></canvas>
+              <div><div class="muted small">Kolor na środku:</div><i id="miniSwatch"></i><div class="muted small">Środkowe pole kratki jest zaznaczone ramką.</div></div>
+            </div>
             <button class="btn" id="scanPick" style="width:100%;margin-bottom:10px">📷 Weź kolor ze środka kamery</button>
             <div class="sw" id="scanSwatches"></div>
           </div>
@@ -403,7 +413,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
 </main>
 
 <footer>
-  Kostka 1.8 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
+  Kostka 1.9 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
   <a href="https://github.com/paduszynski/kostkarubika">kod na GitHubie</a>
 </footer>
 
@@ -846,6 +856,7 @@ function live() {
   lastSample = s;
   const st = SCAN[scanStep];
   if (!st) return;
+  if (!$('scanColors').classList.contains('hidden')) drawMiniCam(s);
   // the centre always shows the colour this face should have; a different colour only leads to a suggestion
   $('camGrid').querySelectorAll(':scope > div').forEach((cell, k) => cell.firstChild.style.setProperty('--c', CVAR(k === 4 ? st.face : guess(s[k]))));
   const g = guess(s[4]), far = guess.dist > 55;   // far: it isn't really like any colour of this cube
@@ -1069,16 +1080,29 @@ $('scanSwatches').onclick = onSwatch;
 $('scanPick').onclick = () => {
   const smp = sample() || lastSample;
   if (!smp) { toast('Aparat jeszcze się nie włączył'); return; }
-  // camera colours come out dark, so brighten them a bit for display
-  const [h, sat, v] = rgb2hsv(smp[4]);
-  const rgb = hsv2rgb(h, sat, Math.max(v, 0.82));
   const f = SCAN[Math.min(scanStep, 5)].face;
-  const val = 'custom:#' + rgb.map(x => x.toString(16).padStart(2, '0')).join('');
+  const val = 'custom:' + camHex(smp[4]);
   if (FACES.split('').some(g => g !== f && scheme[g] === val)) { toast('Ten kolor ma już inna ściana'); return; }
   scheme[f] = val;
   saveScheme();
   toast(`Zapisano kolor z kamery: ${NAME[f]} środek`);
 };
+// camera colours come out dark, so brighten them a bit for display
+function camHex(rgb) {
+  const [h, sat, v] = rgb2hsv(rgb);
+  return '#' + hsv2rgb(h, sat, Math.max(v, 0.82)).map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function drawMiniCam(smp) {
+  const v = $('video'), c = $('miniCam'), vw = v.videoWidth, vh = v.videoHeight;
+  if (!vw || !vh) return;
+  const side = Math.min(vw, vh) * SQ, x = c.getContext('2d'), W = c.width, cell = W / 3;
+  x.drawImage(v, (vw - side) / 2, (vh - side) / 2, side, side, 0, 0, W, W);
+  x.strokeStyle = 'rgba(255,255,255,.45)'; x.lineWidth = 1.5;
+  for (let i = 1; i < 3; i++) { x.beginPath(); x.moveTo(i * cell, 0); x.lineTo(i * cell, W); x.moveTo(0, i * cell); x.lineTo(W, i * cell); x.stroke(); }
+  x.strokeStyle = '#fff'; x.lineWidth = 5; x.strokeRect(cell + 3, cell + 3, cell - 6, cell - 6);
+  x.strokeStyle = '#ffd400'; x.lineWidth = 2; x.strokeRect(cell * 1.27, cell * 1.27, cell * .46, cell * .46);  // the part that is measured
+  $('miniSwatch').style.background = camHex(smp[4]);
+}
 function hsv2rgb(h, s, v) {
   const f = n => { const k = (n + h / 60) % 6; return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1)))); };
   return [f(5), f(3), f(1)];
