@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kostka – ułóż kostkę Rubika</title>
-<meta name="version" content="1.9">
+<meta name="version" content="1.10">
 <meta name="description" content="Kostka – zeskanuj kostkę Rubika aparatem telefonu albo wpisz kolory, a aplikacja pokaże ruch po ruchu, jak ją ułożyć.">
 <meta name="theme-color" content="#171a26">
 <link rel="manifest" href="manifest.webmanifest">
@@ -244,7 +244,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
     <button class="back hidden" id="back" aria-label="Wróć">←</button>
     <a class="brand" href="#" aria-label="Kostka – strona główna">
       <span class="logo" aria-hidden="true"><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i><i style="background:var(--cF)"></i><i style="background:var(--cD)"></i><i style="background:var(--cB)"></i><i style="background:var(--cL)"></i><i style="background:var(--cF)"></i><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i></span>
-      Kostka <span class="ver">1.9</span>
+      Kostka <span class="ver">1.10</span>
     </a>
     <span class="htitle" id="htitle"></span>
   </div>
@@ -294,8 +294,8 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
               <div class="muted" id="scanText"></div>
             </div>
           </div>
-          <div class="warn hidden" id="scanWarn"><span id="scanWarnText"></span>
-            <button class="btn" id="scanWarnFix" style="color:var(--ink);width:100%;margin-top:8px;min-height:46px;font-size:.98rem">📷 Ustaw kolor ze środka jako kolor tej ściany</button>
+          <div class="warn hidden" id="scanWarn">
+            <button class="btn" id="scanWarnFix" style="color:var(--ink);width:100%;margin-top:4px;min-height:46px;font-size:.98rem">📷 Ustaw kolor ze środka jako kolor tej ściany</button>
           </div>
           <button class="linkbtn" id="scanColorBtn" style="margin:4px 0 0">🎨 Inny kolor środka?</button>
           <div class="hidden" id="scanColors">
@@ -413,7 +413,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
 </main>
 
 <footer>
-  Kostka 1.9 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
+  Kostka 1.10 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
   <a href="https://github.com/paduszynski/kostkarubika">kod na GitHubie</a>
 </footer>
 
@@ -866,9 +866,6 @@ function live() {
   const box = $('scanWarn');
   if (mismatch >= 4 && box.classList.contains('hidden')) box.classList.remove('hidden');
   if (mismatch === 0) box.classList.add('hidden');
-  if (!box.classList.contains('hidden') && off)
-    $('scanWarnText').textContent = (g !== st.face && !far ? `Środek wygląda na ${NAME[g]}, a ta ściana powinna być ${NAME_F[st.face]}.` : `Środek nie wygląda na ${NAME[st.face]}.`) +
-      ` Sprawdź, czy kostka jest dobrze obrócona. Jeśli tak, a Twoja kostka ma tu inny kolor, ustaw go jako kolor tej ściany:`;
 }
 let mismatch = 0;
 $('scanWarnFix').onclick = () => { $('scanPick').click(); mismatch = 0; $('scanWarn').classList.add('hidden'); };
