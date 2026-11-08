@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kostka – ułóż kostkę Rubika</title>
-<meta name="version" content="1.1">
+<meta name="version" content="1.2">
 <meta name="description" content="Kostka – zeskanuj kostkę Rubika aparatem telefonu albo wpisz kolory, a aplikacja pokaże ruch po ruchu, jak ją ułożyć.">
 <meta name="theme-color" content="#171a26">
 <link rel="manifest" href="manifest.webmanifest">
@@ -219,7 +219,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
     <button class="back hidden" id="back" aria-label="Wróć">←</button>
     <a class="brand" href="#" aria-label="Kostka – strona główna">
       <span class="logo" aria-hidden="true"><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i><i style="background:var(--cF)"></i><i style="background:var(--cD)"></i><i style="background:var(--cB)"></i><i style="background:var(--cL)"></i><i style="background:var(--cF)"></i><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i></span>
-      Kostka <span class="ver">1.1</span>
+      Kostka <span class="ver">1.2</span>
     </a>
     <span class="htitle" id="htitle"></span>
   </div>
@@ -270,6 +270,11 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
             </div>
           </div>
           <div class="warn" id="scanWarn"></div>
+          <button class="linkbtn" id="scanColorBtn" style="margin:4px 0 0">🎨 Inny kolor środka?</button>
+          <div class="hidden" id="scanColors">
+            <div class="muted small" id="scanColorsText" style="margin:6px 0 8px"></div>
+            <div class="sw" id="scanSwatches"></div>
+          </div>
         </div>
         <div class="row" style="margin-top:14px">
           <button class="btn" id="scanUndo" style="flex:0 0 auto"><span class="ico">↶</span>Cofnij</button>
@@ -376,7 +381,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
 </main>
 
 <footer>
-  Kostka 1.1 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
+  Kostka 1.2 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
   <a href="https://github.com/paduszynski/kostkarubika">kod na GitHubie</a>
 </footer>
 
@@ -667,6 +672,8 @@ function renderScanStep() {
   $('faceHint').innerHTML = (s.barPos === 'top' ? bar + face : face + bar) +
     `<small>${s.barPos === 'top' ? 'na górze' : 'na dole'}: ${NAME[s.bar]}</small>`;
   $('scanUndo').disabled = scanStep === 0;
+  $('scanSwatches').innerHTML = swatchesHTML(s.face);
+  $('scanColorsText').textContent = `Jaki kolor ma środek tej ściany (${SLOT[s.face].toLowerCase()})? Wybierz go, a reszta kolorów się dopasuje.`;
   [...$('thumbs').children].forEach((th, i) => {
     const data = scans[SCAN[i].face];
     [...th.children].forEach((c, k) => { c.style.background = data ? `rgb(${data[k].join(',')})` : ''; });
@@ -675,6 +682,7 @@ function renderScanStep() {
 
 async function enterScan() {
   scanStep = 0; scans = {};
+  $('scanColors').classList.add('hidden');
   renderScanStep();
   $('scanWarn').textContent = '';
   const msg = $('camMsg');
@@ -766,7 +774,7 @@ function live() {
   const st = SCAN[scanStep];
   if (!st) return;
   const g = guess(s[4]);
-  $('scanWarn').textContent = g !== st.face ? `Środek wygląda na ${NAME[g]}, a powinien być ${NAME[st.face]}. Sprawdź, czy to dobra ściana.` : '';
+  $('scanWarn').textContent = g !== st.face ? `Środek wygląda na ${NAME[g]}, a powinien być ${NAME[st.face]}. Sprawdź, czy to dobra ściana, albo zmień kolor środka poniżej.` : '';
 }
 $('scanShot').onclick = () => {
   const s = sample() || lastSample;
@@ -945,28 +953,34 @@ $('solveBtn').onclick = async () => {
    Colours of my cube
    ===================================================================== */
 const SLOT = { U: 'Góra', F: 'Przód', R: 'Prawa', L: 'Lewa', B: 'Tył', D: 'Dół' };
-function renderScheme() {
-  const owner = {};
-  for (const f of FACES) owner[scheme[f]] = f;
-  $('schemeRows').innerHTML = 'UFRLBD'.split('').map(f => `
-    <div class="srow">
-      <div class="sh"><i style="--c:${CVAR(f)}"></i><b>${SLOT[f]}: ${NAME[f]}</b><small>(standardowo ${PRESETS[STD_SCHEME[f]][0]})</small></div>
-      <div class="sw">${Object.keys(PRESETS).map(k => `<button data-f="${f}" data-k="${k}" style="--c:${PRESETS[k][3]}" aria-label="${PRESETS[k][0]}"
-        class="${scheme[f] === k ? 'sel' : ''} ${owner[k] ? 'used' : ''}" data-who="${owner[k] ? SLOT[owner[k]] : ''}"></button>`).join('')}</div>
-    </div>`).join('');
+function schemeOwner() { const o = {}; for (const f of FACES) o[scheme[f]] = f; return o; }
+function swatchesHTML(f) {
+  const owner = schemeOwner();
+  return Object.keys(PRESETS).map(k => `<button data-f="${f}" data-k="${k}" style="--c:${PRESETS[k][3]}" aria-label="${PRESETS[k][0]}"
+        class="${scheme[f] === k ? 'sel' : ''} ${owner[k] ? 'used' : ''}" data-who="${owner[k] ? SLOT[owner[k]] : ''}"></button>`).join('');
 }
-$('schemeRows').onclick = e => {
-  const b = e.target.closest('button[data-k]');
-  if (!b) return;
-  const f = b.dataset.f, k = b.dataset.k, other = FACES.split('').find(g => g !== f && scheme[g] === k);
+function setFaceColor(f, k) {
+  const other = FACES.split('').find(g => g !== f && scheme[g] === k);
   if (other) scheme[other] = scheme[f];       // that colour was taken: swap the two faces
   scheme[f] = k;
   saveScheme();
-};
+}
+function onSwatch(e) { const b = e.target.closest('button[data-k]'); if (b) setFaceColor(b.dataset.f, b.dataset.k); }
+function renderScheme() {
+  $('schemeRows').innerHTML = 'UFRLBD'.split('').map(f => `
+    <div class="srow">
+      <div class="sh"><i style="--c:${CVAR(f)}"></i><b>${SLOT[f]}: ${NAME[f]}</b><small>(standardowo ${PRESETS[STD_SCHEME[f]][0]})</small></div>
+      <div class="sw">${swatchesHTML(f)}</div>
+    </div>`).join('');
+}
+$('schemeRows').onclick = onSwatch;
+$('scanSwatches').onclick = onSwatch;
+$('scanColorBtn').onclick = () => { $('scanColors').classList.toggle('hidden'); renderScanStep(); };
 function saveScheme() {
   try { localStorage.setItem(SCHEME_KEY, JSON.stringify(scheme)); } catch (e) {}
   // the editor, the 3D cube and the palette read CSS variables, so they follow automatically
   applyScheme(); renderScheme(); buildScanUI(); renderEditor();
+  if (current === '#skan') renderScanStep();
 }
 $('schemeReset').onclick = () => { scheme = Object.assign({}, STD_SCHEME); saveScheme(); };
 $('schemeDone').onclick = () => go(colorsReturn);
