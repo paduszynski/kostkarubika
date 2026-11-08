@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kostka – ułóż kostkę Rubika</title>
-<meta name="version" content="1.0">
+<meta name="version" content="1.1">
 <meta name="description" content="Kostka – zeskanuj kostkę Rubika aparatem telefonu albo wpisz kolory, a aplikacja pokaże ruch po ruchu, jak ją ułożyć.">
 <meta name="theme-color" content="#171a26">
 <link rel="manifest" href="manifest.webmanifest">
@@ -193,6 +193,17 @@ details summary{cursor:pointer;font-weight:800}
   .stage{height:min(70svh,640px)}
 }
 
+.linkbtn{display:block;margin:14px auto 0;padding:8px 12px;color:#8fb6ff;font-weight:800;text-decoration:underline;text-underline-offset:4px}
+.colors-wrap{max-width:900px;margin:0 auto}
+.colors-wrap h2{font-size:1.5rem;margin-bottom:6px}
+.srow{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-top:10px}
+.srow .sh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.srow .sh i{width:28px;height:28px;border-radius:7px;border:2px solid rgba(0,0,0,.5);background:var(--c)}
+.srow .sh small{color:var(--ink-soft)}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:8px}
+.sw button{aspect-ratio:1;border-radius:10px;background:var(--c);border:3px solid transparent;box-shadow:0 2px 0 rgba(0,0,0,.4);position:relative}
+.sw button.sel{border-color:#fff;box-shadow:0 0 0 3px var(--accent)}
+.sw button.used:not(.sel)::after{content:attr(data-who);position:absolute;inset:auto 0 2px 0;font-size:.62rem;font-weight:900;color:rgba(0,0,0,.6)}
 .busy{position:fixed;inset:0;z-index:50;background:rgba(10,11,18,.7);display:grid;place-items:center;text-align:center;padding:20px}
 .busy .sp{width:56px;height:56px;margin:0 auto 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;animation:rot 1.2s ease-in-out infinite}
 .busy .sp i{border-radius:3px}
@@ -208,7 +219,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
     <button class="back hidden" id="back" aria-label="Wróć">←</button>
     <a class="brand" href="#" aria-label="Kostka – strona główna">
       <span class="logo" aria-hidden="true"><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i><i style="background:var(--cF)"></i><i style="background:var(--cD)"></i><i style="background:var(--cB)"></i><i style="background:var(--cL)"></i><i style="background:var(--cF)"></i><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i></span>
-      Kostka <span class="ver">1.0</span>
+      Kostka <span class="ver">1.1</span>
     </a>
     <span class="htitle" id="htitle"></span>
   </div>
@@ -227,10 +238,11 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
           <button class="choice" id="goEdit"><span class="ci" style="background:var(--cL)">✏️</span><span><b>Wpisz kolory ręcznie</b><small>Wybierz kolor i stukaj w pola na rozłożonej kostce</small></span></button>
           <button class="choice hidden" id="goLast"><span class="ci" style="background:var(--cF)">▶️</span><span><b>Wróć do rozwiązania</b><small id="goLastInfo"></small></span></button>
         </div>
+        <button class="linkbtn" id="goColors">🎨 Moja kostka ma inne kolory</button>
       </div>
     </div>
     <div class="steps">
-      <div class="step card"><span class="n">1</span><div><b>Trzymaj kostkę tak samo</b><div class="muted small">Zielony środek do siebie, biały środek na górze. Tak trzymasz ją przy skanowaniu i przy układaniu.</div></div></div>
+      <div class="step card"><span class="n">1</span><div><b>Trzymaj kostkę tak samo</b><div class="muted small"><span data-c="F" data-cap></span> środek do siebie, <span data-c="U"></span> środek na górze. Tak trzymasz ją przy skanowaniu i przy układaniu.</div></div></div>
       <div class="step card"><span class="n">2</span><div><b>Sprawdź kolory</b><div class="muted small">Po skanowaniu zobaczysz rozłożoną kostkę. Popraw pola, które aparat pomylił.</div></div></div>
       <div class="step card"><span class="n">3</span><div><b>Rób ruchy z animacji</b><div class="muted small">Każdy ruch ma opis i animację 3D. Możesz cofać, powtarzać i zwolnić tempo.</div></div></div>
     </div>
@@ -266,6 +278,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
         <div class="thumbs" id="thumbs"></div>
         <p class="muted small">Ustaw kostkę tak, żeby wypełniła kratkę. Najlepiej przy dziennym świetle, bez odblasków i cieni. Kropki w kratkach pokazują, jaki kolor widzi aparat. Po zeskanowaniu wszystkich ścian będzie można poprawić pomyłki.</p>
         <button class="btn" id="scanToEdit" style="width:100%">✏️ Wolę wpisać kolory ręcznie</button>
+        <button class="linkbtn" data-go="#kolory">🎨 Moja kostka ma inne kolory</button>
       </div>
     </div>
   </section>
@@ -285,15 +298,30 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
           <button class="btn" id="solvedBtn">✅ Ułożona</button>
           <button class="btn" id="randomBtn">🎲 Pomieszaj</button>
         </div>
+        <button class="linkbtn" data-go="#kolory">🎨 Moja kostka ma inne kolory</button>
         <details class="card" style="margin-top:14px">
           <summary>Jak wpisywać kolory?</summary>
           <ul class="muted small" style="padding-left:1.2em;margin-bottom:0">
-            <li>Środki ścian się nie zmieniają: biały na górze (G), zielony z przodu (P), czerwony po prawej, pomarańczowy po lewej, niebieski z tyłu, żółty na dole.</li>
-            <li>Ściany boczne (lewa, przednia, prawa, tylna) wpisuj tak, jak je widzisz, gdy biały środek jest na górze.</li>
-            <li>Górną ścianę (białą) wpisuj patrząc na nią z góry, z zieloną ścianą do siebie. Dolną (żółtą) patrząc od spodu, z zieloną ścianą u góry.</li>
+            <li>Środki ścian się nie zmieniają: <span data-c="U"></span> na górze, <span data-c="F"></span> z przodu, <span data-c="R"></span> po prawej, <span data-c="L"></span> po lewej, <span data-c="B"></span> z tyłu, <span data-c="D"></span> na dole.</li>
+            <li>Ściany boczne (lewa, przednia, prawa, tylna) wpisuj tak, jak je widzisz, gdy <span data-c="U"></span> środek jest na górze.</li>
+            <li>Górną ścianę (<span data-q="U"></span>) wpisuj patrząc na nią z góry, z <span data-q="F"></span> ścianą do siebie. Dolną (<span data-q="D"></span>) patrząc od spodu, z <span data-q="F"></span> ścianą u góry.</li>
+            <li>Kostka ma inne kolory? <a href="#kolory">Ustaw kolory swojej kostki</a>.</li>
             <li>Wybierz kolor z palety i stukaj w pola. Gumka czyści pole.</li>
           </ul>
         </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLOURS -->
+  <section class="view hidden" id="v-colors">
+    <div class="colors-wrap">
+      <h2>Kolory mojej kostki</h2>
+      <p class="muted">Niektóre kostki mają inne kolory, np. różowy zamiast pomarańczowego. Wybierz kolor środka każdej ściany. Wybranie koloru, który ma już inna ściana, zamienia je miejscami.</p>
+      <div id="schemeRows"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" id="schemeReset">↺ Kolory standardowe</button>
+        <button class="btn primary" id="schemeDone">Gotowe</button>
       </div>
     </div>
   </section>
@@ -304,7 +332,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
       <div class="stage">
         <div class="scene" id="solveScene"></div>
         <div class="drag">przeciągnij, żeby obrócić ↻</div>
-        <div class="hold">Trzymaj kostkę: zielony środek do siebie, biały na górze</div>
+        <div class="hold">Trzymaj kostkę: <span data-c="F"></span> środek do siebie, <span data-c="U"></span> na górze</div>
       </div>
       <div>
         <div class="card">
@@ -330,12 +358,12 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
         <details class="card" style="margin-top:14px">
           <summary>Co znaczą litery?</summary>
           <div class="legend">
-            <b>R</b><span>prawa ściana (czerwony środek)</span>
-            <b>L</b><span>lewa ściana (pomarańczowy środek)</span>
-            <b>U</b><span>górna ściana (biały środek)</span>
-            <b>D</b><span>dolna ściana (żółty środek)</span>
-            <b>F</b><span>przednia ściana (zielony środek)</span>
-            <b>B</b><span>tylna ściana (niebieski środek)</span>
+            <b>R</b><span>prawa ściana (<span data-c="R"></span> środek)</span>
+            <b>L</b><span>lewa ściana (<span data-c="L"></span> środek)</span>
+            <b>U</b><span>górna ściana (<span data-c="U"></span> środek)</span>
+            <b>D</b><span>dolna ściana (<span data-c="D"></span> środek)</span>
+            <b>F</b><span>przednia ściana (<span data-c="F"></span> środek)</span>
+            <b>B</b><span>tylna ściana (<span data-c="B"></span> środek)</span>
             <b>bez znaku</b><span>¼ obrotu zgodnie z ruchem wskazówek zegara, patrząc na tę ścianę</span>
             <b>′</b><span>¼ obrotu przeciwnie do ruchu wskazówek zegara</span>
             <b>2</b><span>pół obrotu (dwa razy)</span>
@@ -348,7 +376,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
 </main>
 
 <footer>
-  Kostka 1.0 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
+  Kostka 1.1 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
   <a href="https://github.com/paduszynski/kostkarubika">kod na GitHubie</a>
 </footer>
 
@@ -360,7 +388,34 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
 'use strict';
 const K = KostkaSolver;
 const FACES = 'URFDLB';
-const NAME = { U: 'biały', R: 'czerwony', F: 'zielony', D: 'żółty', L: 'pomarańczowy', B: 'niebieski' };
+// colours a cube can have: [name (m), name (f), name (-ą form), display colour]
+const PRESETS = {
+  white: ['biały', 'biała', 'białą', '#f4f4ef'], yellow: ['żółty', 'żółta', 'żółtą', '#ffd400'],
+  red: ['czerwony', 'czerwona', 'czerwoną', '#d8262e'], orange: ['pomarańczowy', 'pomarańczowa', 'pomarańczową', '#ff7b00'],
+  green: ['zielony', 'zielona', 'zieloną', '#14a44d'], blue: ['niebieski', 'niebieska', 'niebieską', '#1d5fd1'],
+  pink: ['różowy', 'różowa', 'różową', '#ff6fb5'], purple: ['fioletowy', 'fioletowa', 'fioletową', '#8b4fd8'],
+  sky: ['błękitny', 'błękitna', 'błękitną', '#4fc3f7'], lime: ['jasnozielony', 'jasnozielona', 'jasnozieloną', '#8bd346'],
+  grey: ['szary', 'szara', 'szarą', '#9aa0a6'], brown: ['brązowy', 'brązowa', 'brązową', '#8d5a2b']
+};
+const STD_SCHEME = { U: 'white', R: 'red', F: 'green', D: 'yellow', L: 'orange', B: 'blue' };
+const SCHEME_KEY = 'kostka-colors';
+let scheme = Object.assign({}, STD_SCHEME);
+try {
+  const sv = JSON.parse(localStorage.getItem(SCHEME_KEY));
+  if (sv && 'URFDLB'.split('').every(f => PRESETS[sv[f]]) && new Set(Object.values(sv)).size === 6) scheme = sv;
+} catch (e) {}
+const NAME = {}, NAME_F = {}, NAME_Q = {};
+const cap = t => t[0].toUpperCase() + t.slice(1);
+function applyScheme() {
+  for (const f of 'URFDLB') {
+    const p = PRESETS[scheme[f]];
+    NAME[f] = p[0]; NAME_F[f] = p[1]; NAME_Q[f] = p[2];
+    document.documentElement.style.setProperty('--c' + f, p[3]);
+  }
+  document.querySelectorAll('[data-c]').forEach(el => { const n = NAME[el.dataset.c]; el.textContent = el.hasAttribute('data-cap') ? cap(n) : n; });
+  document.querySelectorAll('[data-q]').forEach(el => { el.textContent = NAME_Q[el.dataset.q]; });
+}
+applyScheme();
 const FACE_WORD = { U: 'Górną', R: 'Prawą', F: 'Przednią', D: 'Dolną', L: 'Lewą', B: 'Tylną' };
 const CVAR = f => `var(--c${f})`;
 const $ = id => document.getElementById(id);
@@ -506,8 +561,9 @@ class Cube3D {
 /* =====================================================================
    Router
    ===================================================================== */
-const VIEWS = { '': 'v-home', '#skan': 'v-scan', '#edycja': 'v-edit', '#rozwiazanie': 'v-solve' };
-const TITLES = { '': '', '#skan': 'Skanowanie', '#edycja': 'Kolory kostki', '#rozwiazanie': 'Rozwiązanie' };
+const VIEWS = { '': 'v-home', '#skan': 'v-scan', '#edycja': 'v-edit', '#rozwiazanie': 'v-solve', '#kolory': 'v-colors' };
+const TITLES = { '': '', '#skan': 'Skanowanie', '#edycja': 'Kolory kostki', '#rozwiazanie': 'Rozwiązanie', '#kolory': 'Moja kostka' };
+let colorsReturn = '';
 let current = null;
 function route() {
   let h = location.hash;
@@ -515,6 +571,7 @@ function route() {
   if (h === '#rozwiazanie' && !solution) h = '#edycja';
   if (current === h) return;
   const prev = current; current = h;
+  if (h === '#kolory') { colorsReturn = prev && prev !== '#kolory' ? prev : ''; renderScheme(); }
   for (const k in VIEWS) $(VIEWS[k]).classList.toggle('hidden', k !== h);
   $('back').classList.toggle('hidden', h === '');
   $('htitle').textContent = TITLES[h];
@@ -530,6 +587,7 @@ function go(h) { if (location.hash === h || (!location.hash && !h)) route(); els
 addEventListener('hashchange', route);
 $('back').onclick = () => {
   if (current === '#rozwiazanie') go('#edycja');
+  else if (current === '#kolory') go(colorsReturn);
   else go('');
 };
 
@@ -577,13 +635,14 @@ $('goLast').onclick = () => go('#rozwiazanie');
 /* =====================================================================
    Camera scanning
    ===================================================================== */
+const N = NAME, C = f => cap(NAME[f]);
 const SCAN = [
-  { face: 'F', bar: 'U', barPos: 'top', title: 'Ściana 1: zielona', text: 'Zielony środek do aparatu, biały środek na górze.' },
-  { face: 'R', bar: 'U', barPos: 'top', title: 'Ściana 2: czerwona', text: 'Obróć całą kostkę w lewo: czerwony środek do aparatu, biały dalej na górze.' },
-  { face: 'B', bar: 'U', barPos: 'top', title: 'Ściana 3: niebieska', text: 'Znowu obróć kostkę w lewo: niebieski środek do aparatu, biały na górze.' },
-  { face: 'L', bar: 'U', barPos: 'top', title: 'Ściana 4: pomarańczowa', text: 'Jeszcze raz w lewo: pomarańczowy środek do aparatu, biały na górze.' },
-  { face: 'U', bar: 'F', barPos: 'bottom', title: 'Ściana 5: biała', text: 'Zielony znowu do aparatu, a potem przechyl kostkę górą do siebie: biały środek do aparatu, zielony na dole.' },
-  { face: 'D', bar: 'F', barPos: 'top', title: 'Ściana 6: żółta', text: 'Żółty środek do aparatu, zielony na górze (przechyl kostkę spodem do siebie).' }
+  { face: 'F', bar: 'U', barPos: 'top', text: () => `${C('F')} środek do aparatu, ${N.U} środek na górze.` },
+  { face: 'R', bar: 'U', barPos: 'top', text: () => `Obróć całą kostkę w lewo: ${N.R} środek do aparatu, ${N.U} dalej na górze.` },
+  { face: 'B', bar: 'U', barPos: 'top', text: () => `Znowu obróć kostkę w lewo: ${N.B} środek do aparatu, ${N.U} na górze.` },
+  { face: 'L', bar: 'U', barPos: 'top', text: () => `Jeszcze raz w lewo: ${N.L} środek do aparatu, ${N.U} na górze.` },
+  { face: 'U', bar: 'F', barPos: 'bottom', text: () => `${C('F')} znowu do aparatu, a potem przechyl kostkę górą do siebie: ${N.U} środek do aparatu, ${N.F} na dole.` },
+  { face: 'D', bar: 'F', barPos: 'top', text: () => `${C('D')} środek do aparatu, ${N.F} na górze (przechyl kostkę spodem do siebie).` }
 ];
 const SQ = 0.62;                // part of the shorter video side covered by the grid
 let stream = null, scanStep = 0, scans = {}, liveTimer = null, lastSample = null;
@@ -601,8 +660,8 @@ buildScanUI();
 function renderScanStep() {
   const s = SCAN[Math.min(scanStep, 5)];
   [...$('dots').children].forEach((b, i) => { b.className = i < scanStep ? 'done' : i === scanStep ? 'cur' : ''; });
-  $('scanTitle').textContent = s.title;
-  $('scanText').textContent = s.text;
+  $('scanTitle').textContent = `Ściana ${Math.min(scanStep, 5) + 1}: ${NAME_F[s.face]}`;
+  $('scanText').textContent = s.text();
   const bar = `<div class="bar" style="background:${CVAR(s.bar)}"></div>`;
   const face = '<div class="face">' + [0, 1, 2, 3, 4, 5, 6, 7, 8].map(k => `<i${k === 4 ? ` style="background:${CVAR(s.face)}"` : ''}></i>`).join('') + '</div>';
   $('faceHint').innerHTML = (s.barPos === 'top' ? bar + face : face + bar) +
@@ -685,15 +744,19 @@ function rgb2hsv([r, g, b]) {
   return [(h * 60 + 360) % 360, max ? d / max : 0, max];
 }
 // quick guess for the live preview only; the final colours are clustered over all 54 stickers
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 function guess(rgb) {
   const [h, s, v] = rgb2hsv(rgb);
-  if (s < 0.28 && v > 0.35) return 'U';
-  if (h < 12 || h >= 330) return 'R';
-  if (h < 42) return 'L';
-  if (h < 75) return 'D';
-  if (h < 170) return 'F';
-  if (h < 270) return 'B';
-  return 'R';
+  let best = null, bd = 1e9;
+  for (const f of FACES) {
+    const [ph, ps, pv] = rgb2hsv(hex2rgb(PRESETS[scheme[f]][3]));
+    let d;
+    if (ps < 0.3) d = s < 0.28 ? Math.abs(v - pv) * 100 : 400;     // white / grey stickers
+    else if (s < 0.28 && v > 0.35) d = 400;
+    else { const dh = Math.abs(h - ph); d = Math.min(dh, 360 - dh) + Math.abs(v - pv) * 30; }
+    if (d < bd) { bd = d; best = f; }
+  }
+  return best;
 }
 function live() {
   const s = sample();
@@ -834,7 +897,7 @@ function errorText(r) {
       return `Każdego koloru musi być dokładnie 9 pól. Teraz jest: ${wrong.join(', ')}.`;
     }
     case 'corner': return 'Zaznaczony narożnik ma kolory, które nie występują razem na żadnym narożniku (np. dwa przeciwne kolory). Sprawdź te pola.';
-    case 'edge': return 'Zaznaczona krawędź ma niemożliwe połączenie kolorów (np. biały z żółtym albo dwa takie same). Sprawdź te pola.';
+    case 'edge': return 'Zaznaczona krawędź ma niemożliwe połączenie kolorów (np. kolory z przeciwnych ścian albo dwa takie same). Sprawdź te pola.';
     case 'dupCorner': return 'Dwa zaznaczone narożniki mają te same kolory, a każdy narożnik jest tylko jeden. Któryś jest wpisany źle.';
     case 'dupEdge': return 'Dwie zaznaczone krawędzie mają te same kolory, a każda krawędź jest tylko jedna. Któraś jest wpisana źle.';
     case 'twist': return 'Jeden narożnik jest „obrócony” – takiej kostki nie da się ułożyć. To prawie zawsze pomyłka w kolorach któregoś narożnika.';
@@ -877,6 +940,38 @@ $('solveBtn').onclick = async () => {
   playerFor = null;
   go('#rozwiazanie');
 };
+
+/* =====================================================================
+   Colours of my cube
+   ===================================================================== */
+const SLOT = { U: 'Góra', F: 'Przód', R: 'Prawa', L: 'Lewa', B: 'Tył', D: 'Dół' };
+function renderScheme() {
+  const owner = {};
+  for (const f of FACES) owner[scheme[f]] = f;
+  $('schemeRows').innerHTML = 'UFRLBD'.split('').map(f => `
+    <div class="srow">
+      <div class="sh"><i style="--c:${CVAR(f)}"></i><b>${SLOT[f]}: ${NAME[f]}</b><small>(standardowo ${PRESETS[STD_SCHEME[f]][0]})</small></div>
+      <div class="sw">${Object.keys(PRESETS).map(k => `<button data-f="${f}" data-k="${k}" style="--c:${PRESETS[k][3]}" aria-label="${PRESETS[k][0]}"
+        class="${scheme[f] === k ? 'sel' : ''} ${owner[k] ? 'used' : ''}" data-who="${owner[k] ? SLOT[owner[k]] : ''}"></button>`).join('')}</div>
+    </div>`).join('');
+}
+$('schemeRows').onclick = e => {
+  const b = e.target.closest('button[data-k]');
+  if (!b) return;
+  const f = b.dataset.f, k = b.dataset.k, other = FACES.split('').find(g => g !== f && scheme[g] === k);
+  if (other) scheme[other] = scheme[f];       // that colour was taken: swap the two faces
+  scheme[f] = k;
+  saveScheme();
+};
+function saveScheme() {
+  try { localStorage.setItem(SCHEME_KEY, JSON.stringify(scheme)); } catch (e) {}
+  // the editor, the 3D cube and the palette read CSS variables, so they follow automatically
+  applyScheme(); renderScheme(); buildScanUI(); renderEditor();
+}
+$('schemeReset').onclick = () => { scheme = Object.assign({}, STD_SCHEME); saveScheme(); };
+$('schemeDone').onclick = () => go(colorsReturn);
+$('goColors').onclick = () => go('#kolory');
+document.querySelectorAll('[data-go]').forEach(b => { b.onclick = () => go(b.dataset.go); });
 
 /* solver in a worker so the page never freezes */
 let worker = null, reqId = 0;
