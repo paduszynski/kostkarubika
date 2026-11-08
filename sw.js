@@ -1,5 +1,5 @@
 // Kostka service worker: works offline, always tries the network first for the app itself.
-const CACHE = 'kostka-1.4';
+const CACHE = 'kostka-1.5';
 const ASSETS = ['./', './index.html', './solver.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

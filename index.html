@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kostka – ułóż kostkę Rubika</title>
-<meta name="version" content="1.4">
+<meta name="version" content="1.5">
 <meta name="description" content="Kostka – zeskanuj kostkę Rubika aparatem telefonu albo wpisz kolory, a aplikacja pokaże ruch po ruchu, jak ją ułożyć.">
 <meta name="theme-color" content="#171a26">
 <link rel="manifest" href="manifest.webmanifest">
@@ -107,26 +107,30 @@ main{padding-block:18px 28px}
 
 /* ---------- scan ---------- */
 .scan-grid{display:grid;gap:16px;grid-template-columns:1fr}
-.cam{position:relative;width:100%;aspect-ratio:1/1;max-height:62svh;margin:0 auto;border-radius:20px;overflow:hidden;background:#000}
+.cam{position:relative;width:min(100%, max(240px, calc(100svh - 330px)));aspect-ratio:1/1;margin:0 auto;border-radius:20px;overflow:hidden;background:#000}
 .cam video{width:100%;height:100%;object-fit:cover;display:block}
 .cam .grid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;grid-template-columns:repeat(3,1fr);border:3px solid rgba(255,255,255,.9);border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,.35)}
 .cam .grid div{border:1.5px solid rgba(255,255,255,.55);display:grid;place-items:center}
 .cam .grid div span{width:28%;aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.6);background:var(--c,transparent)}
-.cam .grid .edge{position:absolute;display:grid;gap:4px;pointer-events:none;--gap:calc(8px + 2%)}
-.cam .grid .edge.t,.cam .grid .edge.b{left:0;right:0;height:12%;grid-template-columns:repeat(3,1fr)}
-.cam .grid .edge.l,.cam .grid .edge.r{top:0;bottom:0;width:12%;grid-template-rows:repeat(3,1fr)}
+.cam .grid .edge{position:absolute;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2px;padding:2px;border-radius:6px;background:rgba(0,0,0,.6);pointer-events:none;--gap:5px}
+.cam .grid .edge.t,.cam .grid .edge.b{left:0;right:0;height:19%}
+.cam .grid .edge.l,.cam .grid .edge.r{top:0;bottom:0;width:19%}
 .cam .grid .edge.t{bottom:calc(100% + var(--gap))}
 .cam .grid .edge.b{top:calc(100% + var(--gap))}
 .cam .grid .edge.l{right:calc(100% + var(--gap))}
 .cam .grid .edge.r{left:calc(100% + var(--gap))}
-.cam .grid .edge i{border-radius:5px;border:2px solid rgba(255,255,255,.85);box-shadow:0 1px 4px rgba(0,0,0,.5)}
-.cam .grid .edge.empty i{opacity:.55;border-style:dashed}
+.cam .grid .edge i{border-radius:2px}
+.cam .grid .edge.empty i{opacity:.3}
+.cam .grid .edge.empty i.mid{opacity:1}
 .cam-msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--ink-soft)}
 .cam-msg .btn{margin-top:12px}
 .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 .flash.go{animation:flash .35s ease}
 @keyframes flash{0%{opacity:.75}100%{opacity:0}}
-.dots{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+.dots{display:flex;gap:8px;justify-content:center;margin-bottom:8px}
+#v-scan{padding-bottom:92px}
+.scan-actions{position:fixed;left:0;right:0;bottom:0;z-index:15;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px));background:rgba(23,26,38,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+.scan-actions .row{max-width:640px;margin:0 auto}
 .dots b{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;font-size:.8rem;color:#000;opacity:.45}
 .dots b.cur{opacity:1;border-color:#fff;transform:scale(1.12)}
 .dots b.done{opacity:1}
@@ -144,7 +148,9 @@ main{padding-block:18px 28px}
 .thumb i{border-radius:2px}
 @media (min-width:860px){
   .scan-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}
-  .cam{max-height:72svh}
+  .cam{width:min(100%, calc(100svh - 170px))}
+  .scan-actions{position:static;padding:0;background:none;border:0;backdrop-filter:none;-webkit-backdrop-filter:none;margin-top:14px}
+  #v-scan{padding-bottom:0}
 }
 
 /* ---------- editor ---------- */
@@ -229,7 +235,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
     <button class="back hidden" id="back" aria-label="Wróć">←</button>
     <a class="brand" href="#" aria-label="Kostka – strona główna">
       <span class="logo" aria-hidden="true"><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i><i style="background:var(--cF)"></i><i style="background:var(--cD)"></i><i style="background:var(--cB)"></i><i style="background:var(--cL)"></i><i style="background:var(--cF)"></i><i style="background:var(--cR)"></i><i style="background:var(--cU)"></i></span>
-      Kostka <span class="ver">1.4</span>
+      Kostka <span class="ver">1.5</span>
     </a>
     <span class="htitle" id="htitle"></span>
   </div>
@@ -287,12 +293,12 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
             <div class="sw" id="scanSwatches"></div>
           </div>
         </div>
-        <div class="row" style="margin-top:14px">
+        <div class="scan-actions"><div class="row">
           <button class="btn" id="scanUndo" style="flex:0 0 auto"><span class="ico">↶</span>Cofnij</button>
           <button class="btn primary" id="scanShot"><span class="ico">📸</span>Zapisz ścianę</button>
-        </div>
+        </div></div>
         <div class="thumbs" id="thumbs"></div>
-        <p class="muted small">Ustaw kostkę tak, żeby wypełniła kratkę. Najlepiej przy dziennym świetle, bez odblasków i cieni. Kropki w kratkach pokazują, jaki kolor widzi aparat. Paski wokół kratki to brzegi sąsiednich ścian: po zeskanowaniu mają ich prawdziwe kolory, więc powinny się zgadzać z tym, co widzisz na kostce przy krawędziach. Po zeskanowaniu wszystkich ścian będzie można poprawić pomyłki.</p>
+        <p class="muted small">Ustaw kostkę tak, żeby wypełniła kratkę. Najlepiej przy dziennym świetle, bez odblasków i cieni. Kropki w kratkach pokazują, jaki kolor widzi aparat. Paski wokół kratki to sąsiednie ściany rozłożone jak siatka kostki (rząd przy kratce dotyka skanowanej ściany). Po zeskanowaniu mają prawdziwe kolory, więc powinny się zgadzać z tym, co widzisz na kostce. Po zeskanowaniu wszystkich ścian będzie można poprawić pomyłki.</p>
         <button class="btn" id="scanToEdit" style="width:100%">✏️ Wolę wpisać kolory ręcznie</button>
         <button class="linkbtn" data-go="#kolory">🎨 Moja kostka ma inne kolory</button>
       </div>
@@ -392,7 +398,7 @@ footer{color:var(--ink-dim);font-size:.85rem;padding-block:18px calc(18px + env(
 </main>
 
 <footer>
-  Kostka 1.4 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
+  Kostka 1.5 · rozwiązanie: algorytm dwufazowy Kociemby, liczony w telefonie, działa też bez internetu ·
   <a href="https://github.com/paduszynski/kostkarubika">kod na GitHubie</a>
 </footer>
 
@@ -675,7 +681,7 @@ const SCAN = [
   { face: 'U', bar: 'F', barPos: 'bottom', text: () => `${C('F')} znowu do aparatu, a potem przechyl kostkę górą do siebie: ${N.U} środek do aparatu, ${N.F} na dole.` },
   { face: 'D', bar: 'F', barPos: 'top', text: () => `${C('D')} środek do aparatu, ${N.F} na górze (przechyl kostkę spodem do siebie).` }
 ];
-const SQ = 0.62;                // part of the shorter video side covered by the grid
+const SQ = 0.56;                // part of the shorter video side covered by the grid
 let stream = null, scanStep = 0, scans = {}, liveTimer = null, lastSample = null;
 const sampler = document.createElement('canvas');
 sampler.width = sampler.height = 90;
@@ -683,7 +689,7 @@ const sctx = sampler.getContext('2d', { willReadFrequently: true });
 
 function buildScanUI() {
   $('camGrid').innerHTML = '<div><span></span></div>'.repeat(9) +
-    ['t', 'r', 'b', 'l'].map(side => `<b class="edge ${side}">${'<i></i>'.repeat(3)}</b>`).join('');
+    ['t', 'r', 'b', 'l'].map(side => `<b class="edge ${side}">${'<i></i>'.repeat(9)}</b>`).join('');
   $('dots').innerHTML = SCAN.map(s => `<b style="background:${CVAR(s.face)}"></b>`).join('');
   $('thumbs').innerHTML = SCAN.map(() => '<div class="thumb">' + '<i></i>'.repeat(9) + '</div>').join('');
 }
@@ -700,14 +706,22 @@ function edgeStrips(face) {
   for (const side in EDGE_K) out[side] = EDGE_K[side].map(k => K.STICKER_AT[P(k).concat(dir[side]).join(',')]);
   return out;
 }
+// Each neighbouring face is drawn whole, unfolded next to the grid like a cube net and squashed into a thin strip:
+// the row touching the grid comes first, then the middle row, then the far row.
 function renderEdges(face) {
-  const strips = edgeStrips(face);
+  const strips = edgeStrips(face), n = K.STICKERS[FACES.indexOf(face) * 9 + 4].pos;
   for (const side in strips) {
-    const el = $('camGrid').querySelector('.edge.' + side), idx = strips[side];
-    const g = FACES[(idx[0] / 9) | 0], data = scans[g];
+    const el = $('camGrid').querySelector('.edge.' + side), touch = strips[side];
+    const g = FACES[(touch[0] / 9) | 0], data = scans[g];
     el.classList.toggle('empty', !data);
-    el.title = `${NAME_F[g]} ściana` + (data ? '' : ' (jeszcze nie zeskanowana)');
-    [...el.children].forEach((t, j) => { t.style.background = data ? `rgb(${data[idx[j] % 9].join(',')})` : CVAR(g); });
+    [...el.children].forEach((t, i) => {
+      const vr = (i / 3) | 0, vc = i % 3;
+      const [j, e] = side === 't' ? [2 - vr, vc] : side === 'b' ? [vr, vc] : side === 'l' ? [2 - vc, vr] : [vc, vr];
+      const st = K.STICKERS[touch[e]], p = st.pos.map((v, a) => v - j * n[a]);
+      const idx = K.STICKER_AT[p.concat(st.n).join(',')];
+      t.className = idx % 9 === 4 ? 'mid' : '';
+      t.style.background = data ? `rgb(${data[idx % 9].join(',')})` : CVAR(g);
+    });
   }
 }
 function renderScanStep() {
